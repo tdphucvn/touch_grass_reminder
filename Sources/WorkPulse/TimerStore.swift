@@ -316,6 +316,13 @@ final class TimerStore: ObservableObject {
         }
     }
 
+    @Published var hydrationRemindersEnabled: Bool {
+        didSet {
+            defaults.set(hydrationRemindersEnabled, forKey: Keys.hydrationRemindersEnabled)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
     @Published var isWidgetVisible: Bool {
         didSet {
             defaults.set(isWidgetVisible, forKey: Keys.widgetVisible)
@@ -335,6 +342,7 @@ final class TimerStore: ObservableObject {
     }
 
     var onPhaseCompleted: ((SessionPhase) -> Void)?
+    var onHydrationReminderDue: (() -> Void)?
 
     var formattedRemaining: String {
         let displaySeconds = max(0, Int(ceil(remainingTimeSeconds)))
@@ -368,6 +376,16 @@ final class TimerStore: ObservableObject {
         return min(max(remainingTimeSeconds / total, 0), 1)
     }
 
+    var hydrationReminderSummary: String {
+        let offsets = hydrationOffsetsForWorkDuration(Double(max(1, (workMinutes * 60) + workSeconds)))
+        if offsets.isEmpty {
+            return "No drink reminders in this work duration."
+        }
+
+        let labels = offsets.map { formatOffsetLabel($0) }
+        return "Drink reminders: \(labels.joined(separator: ", "))"
+    }
+
     private let defaults = UserDefaults.standard
     private var ticker: AnyCancellable?
     private var phaseEndDate: Date?
@@ -375,6 +393,8 @@ final class TimerStore: ObservableObject {
     private var messageDismissWorkItem: DispatchWorkItem?
     private var workSessionsSinceLastLongBreak = 0
     private var isApplyingPreset = false
+    private var hydrationReminderOffsets: [TimeInterval] = []
+    private var nextHydrationReminderIndex = 0
 
     private enum Keys {
         static let preset = "timerPreset"
@@ -396,6 +416,7 @@ final class TimerStore: ObservableObject {
         static let autoStart = "autoStartNextPhase"
         static let notificationsEnabled = "notificationsEnabled"
         static let playSound = "playSound"
+        static let hydrationRemindersEnabled = "hydrationRemindersEnabled"
         static let widgetVisible = "widgetVisible"
         static let manualWidgetX = "manualWidgetX"
         static let manualWidgetY = "manualWidgetY"
@@ -482,6 +503,7 @@ final class TimerStore: ObservableObject {
         autoStartNextPhase = defaults.object(forKey: Keys.autoStart) as? Bool ?? true
         notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
         playSound = defaults.object(forKey: Keys.playSound) as? Bool ?? false
+        hydrationRemindersEnabled = defaults.object(forKey: Keys.hydrationRemindersEnabled) as? Bool ?? false
         isWidgetVisible = defaults.object(forKey: Keys.widgetVisible) as? Bool ?? true
 
         if let x = defaults.object(forKey: Keys.manualWidgetX) as? Double,
@@ -495,6 +517,7 @@ final class TimerStore: ObservableObject {
         remainingTimeSeconds = TimeInterval(initialSeconds)
         remainingSeconds = initialSeconds
         pausedTimeSeconds = TimeInterval(initialSeconds)
+        prepareHydrationScheduleForCurrentPhase()
 
         startTicker()
         requestNotificationPermissionsIfNeeded()
@@ -660,6 +683,7 @@ final class TimerStore: ObservableObject {
             remainingTimeSeconds = secondsLeft
             remainingSeconds = max(1, Int(ceil(secondsLeft)))
             pausedTimeSeconds = secondsLeft
+            maybeTriggerHydrationReminder()
             return
         }
 
@@ -708,6 +732,7 @@ final class TimerStore: ObservableObject {
         remainingTimeSeconds = TimeInterval(fullDuration)
         remainingSeconds = fullDuration
         pausedTimeSeconds = TimeInterval(fullDuration)
+        prepareHydrationScheduleForCurrentPhase()
     }
 
     private func setCompletionMessage(_ message: String) {
@@ -787,6 +812,62 @@ final class TimerStore: ObservableObject {
                 NSSound.beep()
             }
         }
+    }
+
+    private func maybeTriggerHydrationReminder() {
+        guard hydrationRemindersEnabled, isRunning, phase == .work else { return }
+        guard !hydrationReminderOffsets.isEmpty, nextHydrationReminderIndex < hydrationReminderOffsets.count else { return }
+
+        let workDuration = Double(max(1, phaseDurationSeconds))
+        let elapsed = max(0, workDuration - remainingTimeSeconds)
+        while nextHydrationReminderIndex < hydrationReminderOffsets.count,
+              elapsed >= hydrationReminderOffsets[nextHydrationReminderIndex] {
+            nextHydrationReminderIndex += 1
+            onHydrationReminderDue?()
+        }
+    }
+
+    private func prepareHydrationScheduleForCurrentPhase() {
+        guard hydrationRemindersEnabled, phase == .work else {
+            hydrationReminderOffsets = []
+            nextHydrationReminderIndex = 0
+            return
+        }
+
+        let workDuration = Double(max(1, phaseDurationSeconds))
+        hydrationReminderOffsets = hydrationOffsetsForWorkDuration(workDuration)
+        let elapsed = max(0, workDuration - remainingTimeSeconds)
+        nextHydrationReminderIndex = hydrationReminderOffsets.firstIndex(where: { $0 > elapsed }) ?? hydrationReminderOffsets.count
+    }
+
+    private func hydrationOffsetsForWorkDuration(_ workDuration: TimeInterval) -> [TimeInterval] {
+        let rawOffsets: [TimeInterval]
+        switch preset {
+        case .pomodoroClassic:
+            rawOffsets = [workDuration / 2]
+        case .focus4510:
+            rawOffsets = [TimeInterval(5 * 60), workDuration - TimeInterval(5 * 60)]
+        case .custom:
+            if workDuration >= TimeInterval(40 * 60) {
+                rawOffsets = [TimeInterval(20 * 60), workDuration - TimeInterval(10 * 60)]
+            } else if workDuration >= TimeInterval(20 * 60) {
+                rawOffsets = [workDuration / 2]
+            } else {
+                rawOffsets = []
+            }
+        }
+
+        let clamped = rawOffsets.map { offset in
+            min(max(offset, 1), max(1, workDuration - 1))
+        }
+        return Array(Set(clamped)).sorted()
+    }
+
+    private func formatOffsetLabel(_ offset: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(offset.rounded()))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func requestNotificationPermissionsIfNeeded() {

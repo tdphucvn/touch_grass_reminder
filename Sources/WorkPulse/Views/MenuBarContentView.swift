@@ -139,6 +139,13 @@ struct MenuBarContentView: View {
             Toggle("Auto-start next phase", isOn: $store.autoStartNextPhase)
             Toggle("Notifications", isOn: $store.notificationsEnabled)
             Toggle("Sound on phase switch", isOn: $store.playSound)
+            Toggle("Hydration reminders", isOn: $store.hydrationRemindersEnabled)
+
+            if store.hydrationRemindersEnabled {
+                Text(store.hydrationReminderSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Button("Reset Panel Position") {
                 store.resetWidgetPosition()

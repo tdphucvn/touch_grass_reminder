@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingWidgetController: FloatingWidgetWindowController?
     private var settingsWindowController: SettingsWindowController?
     private let screenFlashController = ScreenFlashWindowController()
+    private let drinkReminderController = DrinkReminderWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,6 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         TimerStore.shared.onPhaseCompleted = { [weak self] completedPhase in
             self?.flashActiveScreen(for: completedPhase)
+        }
+
+        TimerStore.shared.onHydrationReminderDue = { [weak self] in
+            self?.presentHydrationReminder()
         }
     }
 
@@ -30,5 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let color = TimerStore.shared.nsTint(for: completedPhase)
         let targetScreen = floatingWidgetController?.currentScreen
         screenFlashController.flash(on: targetScreen, color: color)
+    }
+
+    private func presentHydrationReminder() {
+        let targetScreen = floatingWidgetController?.currentScreen
+        drinkReminderController.present(on: targetScreen, tint: NSColor.systemTeal)
     }
 }
