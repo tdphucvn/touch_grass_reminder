@@ -86,6 +86,7 @@ final class TimerStore: ObservableObject {
     @Published private(set) var phase: SessionPhase = .work
     @Published private(set) var isRunning = false
     @Published private(set) var isLongBreakActive = false
+    @Published private(set) var remainingTimeSeconds: TimeInterval
     @Published private(set) var remainingSeconds: Int
     @Published private(set) var completedWorkSessions = 0
     @Published private(set) var completionMessage: String?
@@ -336,8 +337,9 @@ final class TimerStore: ObservableObject {
     var onPhaseCompleted: ((SessionPhase) -> Void)?
 
     var formattedRemaining: String {
-        let minutes = remainingSeconds / 60
-        let seconds = remainingSeconds % 60
+        let displaySeconds = max(0, Int(ceil(remainingTimeSeconds)))
+        let minutes = displaySeconds / 60
+        let seconds = displaySeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
@@ -362,14 +364,14 @@ final class TimerStore: ObservableObject {
     }
 
     var progress: Double {
-        let total = max(phaseDurationSeconds, 1)
-        return min(max(Double(remainingSeconds) / Double(total), 0), 1)
+        let total = max(Double(phaseDurationSeconds), 1)
+        return min(max(remainingTimeSeconds / total, 0), 1)
     }
 
     private let defaults = UserDefaults.standard
     private var ticker: AnyCancellable?
     private var phaseEndDate: Date?
-    private var pausedSeconds: Int
+    private var pausedTimeSeconds: TimeInterval
     private var messageDismissWorkItem: DispatchWorkItem?
     private var workSessionsSinceLastLongBreak = 0
     private var isApplyingPreset = false
@@ -490,8 +492,9 @@ final class TimerStore: ObservableObject {
         }
 
         let initialSeconds = max(1, (startWorkMinutes * 60) + startWorkSeconds)
+        remainingTimeSeconds = TimeInterval(initialSeconds)
         remainingSeconds = initialSeconds
-        pausedSeconds = initialSeconds
+        pausedTimeSeconds = TimeInterval(initialSeconds)
 
         startTicker()
         requestNotificationPermissionsIfNeeded()
@@ -584,8 +587,8 @@ final class TimerStore: ObservableObject {
     func start() {
         if isRunning { return }
 
-        let secondsToRun = max(1, pausedSeconds)
-        phaseEndDate = Date().addingTimeInterval(Double(secondsToRun))
+        let secondsToRun = max(1, pausedTimeSeconds)
+        phaseEndDate = Date().addingTimeInterval(secondsToRun)
         isRunning = true
         recalculateRemaining()
     }
@@ -595,7 +598,7 @@ final class TimerStore: ObservableObject {
 
         recalculateRemaining()
         phaseEndDate = nil
-        pausedSeconds = max(1, remainingSeconds)
+        pausedTimeSeconds = max(1, remainingTimeSeconds)
         isRunning = false
     }
 
@@ -637,7 +640,7 @@ final class TimerStore: ObservableObject {
     }
 
     private func startTicker() {
-        ticker = Timer.publish(every: 0.5, tolerance: 0.2, on: .main, in: .common)
+        ticker = Timer.publish(every: 0.05, tolerance: 0.01, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.tick()
@@ -652,10 +655,11 @@ final class TimerStore: ObservableObject {
     private func recalculateRemaining() {
         guard let endDate = phaseEndDate else { return }
 
-        let seconds = Int(ceil(endDate.timeIntervalSinceNow))
-        if seconds > 0 {
-            remainingSeconds = seconds
-            pausedSeconds = seconds
+        let secondsLeft = endDate.timeIntervalSinceNow
+        if secondsLeft > 0 {
+            remainingTimeSeconds = secondsLeft
+            remainingSeconds = max(1, Int(ceil(secondsLeft)))
+            pausedTimeSeconds = secondsLeft
             return
         }
 
@@ -701,8 +705,9 @@ final class TimerStore: ObservableObject {
 
     private func syncRemainingToCurrentPhase() {
         let fullDuration = max(1, phaseDurationSeconds)
+        remainingTimeSeconds = TimeInterval(fullDuration)
         remainingSeconds = fullDuration
-        pausedSeconds = fullDuration
+        pausedTimeSeconds = TimeInterval(fullDuration)
     }
 
     private func setCompletionMessage(_ message: String) {
