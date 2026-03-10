@@ -38,10 +38,14 @@ create_bundle() {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
   <key>CFBundleName</key>
   <string>$APP_NAME</string>
   <key>CFBundleDisplayName</key>
   <string>$APP_NAME</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
   <key>CFBundleExecutable</key>
   <string>$APP_NAME</string>
   <key>CFBundleIdentifier</key>
@@ -50,6 +54,8 @@ create_bundle() {
   <string>1</string>
   <key>CFBundleShortVersionString</key>
   <string>1.0</string>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>LSUIElement</key>
@@ -69,12 +75,14 @@ EOF
 install_user() {
   local bundle_path="$1"
   mkdir -p "$HOME/Applications"
+  rm -rf "$HOME/Applications/$APP_NAME.app"
   cp -R "$bundle_path" "$HOME/Applications/"
   echo "Installed to: $HOME/Applications/$APP_NAME.app"
 }
 
 install_system() {
   local bundle_path="$1"
+  sudo rm -rf "/Applications/$APP_NAME.app"
   sudo cp -R "$bundle_path" "/Applications/"
   echo "Installed to: /Applications/$APP_NAME.app"
 }

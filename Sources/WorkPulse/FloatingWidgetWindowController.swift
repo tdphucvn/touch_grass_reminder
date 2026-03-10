@@ -63,6 +63,7 @@ final class FloatingWidgetWindowController: NSWindowController, NSWindowDelegate
         super.init(window: panel)
 
         panel.delegate = self
+        panel.setContentSize(desiredPanelSize())
         bindState()
         updateWindowAppearance(animated: false)
         updateVisibility(store.isWidgetVisible)
@@ -76,11 +77,6 @@ final class FloatingWidgetWindowController: NSWindowController, NSWindowDelegate
     func windowDidMove(_ notification: Notification) {
         guard !isProgrammaticMove, let window else { return }
         store.setManualWidgetPosition(window.frame.origin)
-    }
-
-    func windowDidResize(_ notification: Notification) {
-        // Keep the panel fully visible if SwiftUI adjusts intrinsic size.
-        updateWindowAppearance(animated: false)
     }
 
     private func bindState() {
@@ -122,11 +118,6 @@ final class FloatingWidgetWindowController: NSWindowController, NSWindowDelegate
 
     private func updateWindowAppearance(animated: Bool) {
         guard let window else { return }
-
-        let size = desiredPanelSize()
-        if window.frame.size != size {
-            window.setContentSize(size)
-        }
         window.alphaValue = store.widgetOpacity
 
         guard let screen = preferredScreen() else { return }
