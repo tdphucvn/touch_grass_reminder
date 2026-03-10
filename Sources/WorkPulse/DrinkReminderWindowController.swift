@@ -107,7 +107,7 @@ final class DrinkReminderWindowController: NSWindowController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
         panel.level = .statusBar
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .moveToActiveSpace]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
         panel.isMovable = false
 

@@ -5,7 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingWidgetController: FloatingWidgetWindowController?
     private var settingsWindowController: SettingsWindowController?
     private let screenFlashController = ScreenFlashWindowController()
-    private let drinkReminderController = DrinkReminderWindowController()
+    private var drinkReminderController: DrinkReminderWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -39,6 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func presentHydrationReminder() {
         let targetScreen = floatingWidgetController?.currentScreen
-        drinkReminderController.present(on: targetScreen, tint: NSColor.systemTeal)
+        if drinkReminderController == nil {
+            drinkReminderController = DrinkReminderWindowController()
+        }
+        drinkReminderController?.present(on: targetScreen, tint: NSColor.systemTeal)
     }
 }
