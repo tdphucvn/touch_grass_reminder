@@ -8,6 +8,8 @@ struct FloatingWidgetView: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            WindowDragHandle()
+
             timerBadge
 
             segmentButton(
@@ -38,8 +40,6 @@ struct FloatingWidgetView: View {
             }
             .buttonStyle(.plain)
             .help("Quit")
-
-            WindowDragHandle()
         }
         .padding(4)
         .background(
