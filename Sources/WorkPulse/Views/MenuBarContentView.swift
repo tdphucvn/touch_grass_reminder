@@ -142,6 +142,21 @@ struct MenuBarContentView: View {
             Toggle("Hydration reminders", isOn: $store.hydrationRemindersEnabled)
 
             if store.hydrationRemindersEnabled {
+                if store.preset == .custom {
+                    HydrationOffsetInputRow(
+                        title: "After Start",
+                        enabled: $store.customHydrationAfterStartEnabled,
+                        minutes: $store.customHydrationAfterStartMinutes,
+                        seconds: $store.customHydrationAfterStartSeconds
+                    )
+                    HydrationOffsetInputRow(
+                        title: "Before End",
+                        enabled: $store.customHydrationBeforeEndEnabled,
+                        minutes: $store.customHydrationBeforeEndMinutes,
+                        seconds: $store.customHydrationBeforeEndSeconds
+                    )
+                }
+
                 Text(store.hydrationReminderSummary)
                     .font(.caption)
                     .foregroundStyle(.secondary)

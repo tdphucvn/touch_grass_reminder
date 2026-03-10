@@ -72,6 +72,38 @@ struct LongBreakCycleRow: View {
     }
 }
 
+struct HydrationOffsetInputRow: View {
+    let title: String
+    @Binding var enabled: Bool
+    @Binding var minutes: Int
+    @Binding var seconds: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Toggle(title, isOn: $enabled)
+                .toggleStyle(.switch)
+
+            Spacer()
+
+            TextField("mm", value: $minutes, formatter: SettingsFieldFormatters.minutes)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+                .multilineTextAlignment(.trailing)
+                .disabled(!enabled)
+
+            Text(":")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+
+            TextField("ss", value: $seconds, formatter: SettingsFieldFormatters.seconds)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+                .multilineTextAlignment(.trailing)
+                .disabled(!enabled)
+        }
+    }
+}
+
 struct ColorControlsSection: View {
     let title: String
     let color: Color

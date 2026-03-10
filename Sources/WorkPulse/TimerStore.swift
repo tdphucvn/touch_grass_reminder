@@ -323,6 +323,68 @@ final class TimerStore: ObservableObject {
         }
     }
 
+    @Published var customHydrationAfterStartEnabled: Bool {
+        didSet {
+            defaults.set(customHydrationAfterStartEnabled, forKey: Keys.customHydrationAfterStartEnabled)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
+    @Published var customHydrationAfterStartMinutes: Int {
+        didSet {
+            let clamped = max(0, min(customHydrationAfterStartMinutes, 180))
+            if customHydrationAfterStartMinutes != clamped {
+                customHydrationAfterStartMinutes = clamped
+                return
+            }
+            defaults.set(customHydrationAfterStartMinutes, forKey: Keys.customHydrationAfterStartMinutes)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
+    @Published var customHydrationAfterStartSeconds: Int {
+        didSet {
+            let clamped = max(0, min(customHydrationAfterStartSeconds, 59))
+            if customHydrationAfterStartSeconds != clamped {
+                customHydrationAfterStartSeconds = clamped
+                return
+            }
+            defaults.set(customHydrationAfterStartSeconds, forKey: Keys.customHydrationAfterStartSeconds)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
+    @Published var customHydrationBeforeEndEnabled: Bool {
+        didSet {
+            defaults.set(customHydrationBeforeEndEnabled, forKey: Keys.customHydrationBeforeEndEnabled)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
+    @Published var customHydrationBeforeEndMinutes: Int {
+        didSet {
+            let clamped = max(0, min(customHydrationBeforeEndMinutes, 180))
+            if customHydrationBeforeEndMinutes != clamped {
+                customHydrationBeforeEndMinutes = clamped
+                return
+            }
+            defaults.set(customHydrationBeforeEndMinutes, forKey: Keys.customHydrationBeforeEndMinutes)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
+    @Published var customHydrationBeforeEndSeconds: Int {
+        didSet {
+            let clamped = max(0, min(customHydrationBeforeEndSeconds, 59))
+            if customHydrationBeforeEndSeconds != clamped {
+                customHydrationBeforeEndSeconds = clamped
+                return
+            }
+            defaults.set(customHydrationBeforeEndSeconds, forKey: Keys.customHydrationBeforeEndSeconds)
+            prepareHydrationScheduleForCurrentPhase()
+        }
+    }
+
     @Published var isWidgetVisible: Bool {
         didSet {
             defaults.set(isWidgetVisible, forKey: Keys.widgetVisible)
@@ -377,6 +439,30 @@ final class TimerStore: ObservableObject {
     }
 
     var hydrationReminderSummary: String {
+        if preset == .custom {
+            let afterStart = formatDurationLabel(
+                minutes: customHydrationAfterStartMinutes,
+                seconds: customHydrationAfterStartSeconds
+            )
+            let beforeEnd = formatDurationLabel(
+                minutes: customHydrationBeforeEndMinutes,
+                seconds: customHydrationBeforeEndSeconds
+            )
+
+            var parts: [String] = []
+            if customHydrationAfterStartEnabled {
+                parts.append("+\(afterStart) after start")
+            }
+            if customHydrationBeforeEndEnabled {
+                parts.append("-\(beforeEnd) before end")
+            }
+
+            if parts.isEmpty {
+                return "Custom drink reminders are disabled."
+            }
+            return "Custom drink reminders: \(parts.joined(separator: ", "))"
+        }
+
         let offsets = hydrationOffsetsForWorkDuration(Double(max(1, (workMinutes * 60) + workSeconds)))
         if offsets.isEmpty {
             return "No drink reminders in this work duration."
@@ -417,6 +503,12 @@ final class TimerStore: ObservableObject {
         static let notificationsEnabled = "notificationsEnabled"
         static let playSound = "playSound"
         static let hydrationRemindersEnabled = "hydrationRemindersEnabled"
+        static let customHydrationAfterStartEnabled = "customHydrationAfterStartEnabled"
+        static let customHydrationAfterStartMinutes = "customHydrationAfterStartMinutes"
+        static let customHydrationAfterStartSeconds = "customHydrationAfterStartSeconds"
+        static let customHydrationBeforeEndEnabled = "customHydrationBeforeEndEnabled"
+        static let customHydrationBeforeEndMinutes = "customHydrationBeforeEndMinutes"
+        static let customHydrationBeforeEndSeconds = "customHydrationBeforeEndSeconds"
         static let widgetVisible = "widgetVisible"
         static let manualWidgetX = "manualWidgetX"
         static let manualWidgetY = "manualWidgetY"
@@ -442,6 +534,12 @@ final class TimerStore: ObservableObject {
         let savedLongBreakMinutes = defaults.object(forKey: Keys.longBreakMinutes) as? Int ?? 30
         let savedLongBreakSeconds = defaults.object(forKey: Keys.longBreakSeconds) as? Int ?? 0
         let savedLongBreakEvery = defaults.object(forKey: Keys.longBreakEvery) as? Int ?? 0
+        let savedCustomHydrationAfterStartEnabled = defaults.object(forKey: Keys.customHydrationAfterStartEnabled) as? Bool ?? true
+        let savedCustomHydrationAfterStartMinutes = defaults.object(forKey: Keys.customHydrationAfterStartMinutes) as? Int ?? 20
+        let savedCustomHydrationAfterStartSeconds = defaults.object(forKey: Keys.customHydrationAfterStartSeconds) as? Int ?? 0
+        let savedCustomHydrationBeforeEndEnabled = defaults.object(forKey: Keys.customHydrationBeforeEndEnabled) as? Bool ?? true
+        let savedCustomHydrationBeforeEndMinutes = defaults.object(forKey: Keys.customHydrationBeforeEndMinutes) as? Int ?? 10
+        let savedCustomHydrationBeforeEndSeconds = defaults.object(forKey: Keys.customHydrationBeforeEndSeconds) as? Int ?? 0
 
         let savedCorner = defaults.string(forKey: Keys.corner).flatMap(WidgetCorner.init(rawValue:)) ?? .topRight
         let savedOpacity = defaults.object(forKey: Keys.opacity) as? Double ?? 0.92
@@ -504,6 +602,12 @@ final class TimerStore: ObservableObject {
         notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
         playSound = defaults.object(forKey: Keys.playSound) as? Bool ?? false
         hydrationRemindersEnabled = defaults.object(forKey: Keys.hydrationRemindersEnabled) as? Bool ?? false
+        customHydrationAfterStartEnabled = savedCustomHydrationAfterStartEnabled
+        customHydrationAfterStartMinutes = max(0, min(savedCustomHydrationAfterStartMinutes, 180))
+        customHydrationAfterStartSeconds = max(0, min(savedCustomHydrationAfterStartSeconds, 59))
+        customHydrationBeforeEndEnabled = savedCustomHydrationBeforeEndEnabled
+        customHydrationBeforeEndMinutes = max(0, min(savedCustomHydrationBeforeEndMinutes, 180))
+        customHydrationBeforeEndSeconds = max(0, min(savedCustomHydrationBeforeEndSeconds, 59))
         isWidgetVisible = defaults.object(forKey: Keys.widgetVisible) as? Bool ?? true
 
         if let x = defaults.object(forKey: Keys.manualWidgetX) as? Double,
@@ -848,13 +952,16 @@ final class TimerStore: ObservableObject {
         case .focus4510:
             rawOffsets = [TimeInterval(5 * 60), workDuration - TimeInterval(5 * 60)]
         case .custom:
-            if workDuration >= TimeInterval(40 * 60) {
-                rawOffsets = [TimeInterval(20 * 60), workDuration - TimeInterval(10 * 60)]
-            } else if workDuration >= TimeInterval(20 * 60) {
-                rawOffsets = [workDuration / 2]
-            } else {
-                rawOffsets = []
+            var offsets: [TimeInterval] = []
+            if customHydrationAfterStartEnabled {
+                let secondsAfterStart = TimeInterval((customHydrationAfterStartMinutes * 60) + customHydrationAfterStartSeconds)
+                offsets.append(secondsAfterStart)
             }
+            if customHydrationBeforeEndEnabled {
+                let secondsBeforeEnd = TimeInterval((customHydrationBeforeEndMinutes * 60) + customHydrationBeforeEndSeconds)
+                offsets.append(workDuration - secondsBeforeEnd)
+            }
+            rawOffsets = offsets
         }
 
         let clamped = rawOffsets.map { offset in
@@ -868,6 +975,12 @@ final class TimerStore: ObservableObject {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func formatDurationLabel(minutes: Int, seconds: Int) -> String {
+        let safeMinutes = max(0, minutes)
+        let safeSeconds = max(0, min(seconds, 59))
+        return String(format: "%02d:%02d", safeMinutes, safeSeconds)
     }
 
     private func requestNotificationPermissionsIfNeeded() {
