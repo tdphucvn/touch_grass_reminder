@@ -78,6 +78,11 @@ final class FloatingWidgetWindowController: NSWindowController, NSWindowDelegate
         store.setManualWidgetPosition(window.frame.origin)
     }
 
+    func windowDidResize(_ notification: Notification) {
+        // Keep the panel fully visible if SwiftUI adjusts intrinsic size.
+        updateWindowAppearance(animated: false)
+    }
+
     private func bindState() {
         store.$corner
             .sink { [weak self] _ in
@@ -128,21 +133,22 @@ final class FloatingWidgetWindowController: NSWindowController, NSWindowDelegate
         let frame = screen.visibleFrame
         let margin: CGFloat = 16
 
+        let currentSize = window.frame.size
         let origin: NSPoint
         if let manualPosition = store.manualWidgetPosition {
-            let x = min(max(manualPosition.x, frame.minX + 4), frame.maxX - size.width - 4)
-            let y = min(max(manualPosition.y, frame.minY + 4), frame.maxY - size.height - 4)
+            let x = min(max(manualPosition.x, frame.minX + 4), frame.maxX - currentSize.width - 4)
+            let y = min(max(manualPosition.y, frame.minY + 4), frame.maxY - currentSize.height - 4)
             origin = NSPoint(x: x, y: y)
         } else {
             switch store.corner {
             case .topLeft:
-                origin = NSPoint(x: frame.minX + margin, y: frame.maxY - size.height - margin)
+                origin = NSPoint(x: frame.minX + margin, y: frame.maxY - currentSize.height - margin)
             case .topRight:
-                origin = NSPoint(x: frame.maxX - size.width - margin, y: frame.maxY - size.height - margin)
+                origin = NSPoint(x: frame.maxX - currentSize.width - margin, y: frame.maxY - currentSize.height - margin)
             case .bottomLeft:
                 origin = NSPoint(x: frame.minX + margin, y: frame.minY + margin)
             case .bottomRight:
-                origin = NSPoint(x: frame.maxX - size.width - margin, y: frame.minY + margin)
+                origin = NSPoint(x: frame.maxX - currentSize.width - margin, y: frame.minY + margin)
             }
         }
 
