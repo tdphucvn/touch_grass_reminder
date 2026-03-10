@@ -5,11 +5,20 @@ private struct ScreenFlashView: View {
     let color: Color
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .stroke(color.opacity(0.95), lineWidth: 8)
-            .shadow(color: color.opacity(0.6), radius: 24)
-            .padding(8)
-            .background(Color.clear)
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(color.opacity(0.95), lineWidth: 12)
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(color.opacity(0.7), lineWidth: 24)
+                .blur(radius: 8)
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(color.opacity(0.45), lineWidth: 34)
+                .blur(radius: 18)
+        }
+        .padding(4)
+        .background(Color.clear)
     }
 }
 
@@ -51,9 +60,33 @@ final class ScreenFlashWindowController: NSWindowController {
         panel.alphaValue = 0
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.18
+            context.duration = 0.2
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().alphaValue = 1
+            panel.animator().alphaValue = 0.96
+        } completionHandler: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.pulseThenFadeOut()
+            }
+        }
+    }
+
+    private func pulseThenFadeOut() {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 0.55
+        } completionHandler: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.fadeInThenHide()
+            }
+        }
+    }
+
+    private func fadeInThenHide() {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.16
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 0.98
         } completionHandler: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.fadeOutAndHide()
@@ -63,7 +96,7 @@ final class ScreenFlashWindowController: NSWindowController {
 
     private func fadeOutAndHide() {
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.9
+            context.duration = 1.05
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = 0
         } completionHandler: { [weak self] in

@@ -720,7 +720,7 @@ final class TimerStore: ObservableObject {
         guard notificationsEnabled else { return }
 
         if playSound {
-            NSSound.beep()
+            playTransitionCueSound()
         }
 
         guard canUseUserNotifications else { return }
@@ -741,6 +741,47 @@ final class TimerStore: ObservableObject {
         )
 
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private func playTransitionCueSound() {
+        let preferredNames = preferredSoundNamesForCurrentTransition
+        for name in preferredNames {
+            if let sound = NSSound(named: NSSound.Name(name)) {
+                sound.play()
+                scheduleBeepAccent(
+                    count: phase == .work ? 1 : (isLongBreakActive ? 3 : 2),
+                    startAfter: 0.18,
+                    interval: 0.13
+                )
+                return
+            }
+        }
+
+        scheduleBeepAccent(
+            count: phase == .work ? 2 : (isLongBreakActive ? 4 : 3),
+            startAfter: 0,
+            interval: 0.14
+        )
+    }
+
+    private var preferredSoundNamesForCurrentTransition: [String] {
+        if phase == .work {
+            return ["Hero", "Glass", "Ping"]
+        }
+        if isLongBreakActive {
+            return ["Funk", "Hero", "Glass", "Ping"]
+        }
+        return ["Glass", "Ping", "Hero"]
+    }
+
+    private func scheduleBeepAccent(count: Int, startAfter: TimeInterval, interval: TimeInterval) {
+        guard count > 0 else { return }
+        for index in 0..<count {
+            let delay = startAfter + (Double(index) * interval)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                NSSound.beep()
+            }
+        }
     }
 
     private func requestNotificationPermissionsIfNeeded() {
