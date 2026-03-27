@@ -5,11 +5,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="WorkPulse"
 BUNDLE_ID="${BUNDLE_ID:-com.tdphucvn.workpulse}"
+ICON_SOURCE="${ICON_SOURCE:-$ROOT_DIR/assets/AppIcon.icns}"
 INSTALL_MODE="${1:-}"
 
 build_binary() {
   echo "Building release binary..." >&2
-  swift build -c release --package-path "$ROOT_DIR" >/dev/stderr
+  swift build -c release --package-path "$ROOT_DIR" >&2
 
   local binary_path
   binary_path="$(find "$ROOT_DIR/.build" -type f -path "*/release/$APP_NAME" | head -n 1)"
@@ -26,12 +27,22 @@ create_bundle() {
   local bundle_path="$ROOT_DIR/dist/$APP_NAME.app"
   local contents_path="$bundle_path/Contents"
   local macos_path="$contents_path/MacOS"
+  local resources_path="$contents_path/Resources"
+  local icon_plist_entry=""
 
   rm -rf "$bundle_path"
-  mkdir -p "$macos_path"
+  mkdir -p "$macos_path" "$resources_path"
 
   cp "$binary_path" "$macos_path/$APP_NAME"
   chmod +x "$macos_path/$APP_NAME"
+
+  if [[ -f "$ICON_SOURCE" ]]; then
+    cp "$ICON_SOURCE" "$resources_path/AppIcon.icns"
+    icon_plist_entry=$'  <key>CFBundleIconFile</key>\n  <string>AppIcon</string>'
+    echo "Using app icon: $ICON_SOURCE" >&2
+  else
+    echo "No icon found at $ICON_SOURCE (will use macOS default icon)." >&2
+  fi
 
   cat > "$contents_path/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -54,6 +65,7 @@ create_bundle() {
   <string>1</string>
   <key>CFBundleShortVersionString</key>
   <string>1.0</string>
+${icon_plist_entry}
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
   <key>LSMinimumSystemVersion</key>

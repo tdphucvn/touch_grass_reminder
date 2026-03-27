@@ -64,6 +64,31 @@ Install system-wide Applications:
 scripts/make-app.sh --install-system
 ```
 
+### Custom App Icon (`.icns`)
+
+macOS app bundles use an `.icns` file, not a single PNG.
+
+1. Put your source image anywhere (PNG or JPG, ideally at least `1024x1024`).
+2. Generate `assets/AppIcon.icns`:
+
+```bash
+scripts/make-icon.sh /path/to/your-icon.png
+```
+
+3. Build the app bundle again:
+
+```bash
+scripts/make-app.sh
+```
+
+`make-app.sh` will automatically embed `assets/AppIcon.icns` into `WorkPulse.app`.
+
+To use a different icon path:
+
+```bash
+ICON_SOURCE=/absolute/path/MyIcon.icns scripts/make-app.sh
+```
+
 After install, launch with Spotlight or:
 
 ```bash

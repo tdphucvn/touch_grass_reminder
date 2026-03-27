@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:work_session}",
+      "name": "Debug WorkPulse",
+      "target": "WorkPulse",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug WorkPulse"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:work_session}",
+      "name": "Release WorkPulse",
+      "target": "WorkPulse",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release WorkPulse"
+    }
+  ]
+}

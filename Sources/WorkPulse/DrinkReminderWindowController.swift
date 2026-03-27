@@ -11,130 +11,201 @@ private struct DrinkReminderView: View {
     let holdDuration: TimeInterval
     let onDismiss: () -> Void
 
-    @State private var pressStart: Date?
-    @State private var progress: Double = 0
-    private let ticker = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
+    @State private var isVisible = false
+    @State private var isHolding = false
+    @State private var progress: CGFloat = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            headerRow
+        VStack(alignment: .leading, spacing: 16) {
+            topRow
             bodyCopy
             holdToDismissButton
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-        .frame(width: 360, height: 220)
+        .padding(18)
+        .frame(width: 392, height: 188)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.035, green: 0.04, blue: 0.05),
-                            Color(red: 0.05, green: 0.065, blue: 0.09)
+                            Color(red: 0.034, green: 0.04, blue: 0.055),
+                            Color(red: 0.042, green: 0.052, blue: 0.075)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial.opacity(0.14))
+                }
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.26), lineWidth: 1)
         }
-        .shadow(color: Color.black.opacity(0.45), radius: 18, y: 8)
-        .onReceive(ticker) { now in
-            guard let pressStart else { return }
-            let elapsed = now.timeIntervalSince(pressStart)
-            let ratio = min(max(elapsed / holdDuration, 0), 1)
-            progress = ratio
-            if ratio >= 1 {
-                resetHold()
-                onDismiss()
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(tint.opacity(0.18), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                .padding(1.5)
+                .allowsHitTesting(false)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            tint.opacity(0.2),
+                            Color.clear
+                        ],
+                        center: .topTrailing,
+                        startRadius: 2,
+                        endRadius: 160
+                    )
+                )
+                .allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .scaleEffect(isVisible ? 1 : 0.98)
+        .opacity(isVisible ? 1 : 0)
+        .offset(y: isVisible ? 0 : 8)
+        .onAppear {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                isVisible = true
             }
         }
     }
 
-    private var headerRow: some View {
-        HStack(spacing: 12) {
+    private var topRow: some View {
+        HStack(alignment: .top, spacing: 12) {
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .fill(Color.white.opacity(0.06))
                     .overlay {
-                        Circle()
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
                             .stroke(Color.white.opacity(0.1), lineWidth: 1)
                     }
 
                 Image(systemName: "drop.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(tint.opacity(0.92))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                tint.opacity(0.98),
+                                tint.opacity(0.72)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
             }
-            .frame(width: 30, height: 30)
+            .frame(width: 34, height: 34)
 
-            Text("Hydration")
-                .font(.system(size: 29, weight: .bold))
-                .foregroundStyle(Color.white.opacity(0.95))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Hydration Break")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.97))
+
+                Text("A short reset keeps your focus steady.")
+                    .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.62))
+            }
+
+            Spacer(minLength: 8)
+
+            Text("NOW")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(tint.opacity(0.88))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(tint.opacity(0.16))
+                )
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(tint.opacity(0.3), lineWidth: 1)
+                }
         }
     }
 
     private var bodyCopy: some View {
-        Text("You've been focused for a while. Take a brief\nmoment to drink some water and reset.")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(Color.white.opacity(0.72))
-            .lineSpacing(4)
+        Text("You have been in deep focus mode. Take a sip of water, roll your shoulders once, and continue with fresh energy.")
+            .font(.system(size: 13.5, weight: .medium, design: .rounded))
+            .foregroundStyle(Color.white.opacity(0.74))
+            .lineSpacing(3.5)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     private var holdToDismissButton: some View {
         ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.03))
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.045))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
                 }
-                .frame(height: 40)
+                .frame(height: 44)
 
             GeometryReader { proxy in
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                tint.opacity(0.38),
-                                tint.opacity(0.18)
+                                tint.opacity(0.52),
+                                tint.opacity(0.26)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: proxy.size.width * progress, height: 40)
+                    .frame(width: proxy.size.width * progress, height: 44)
             }
             .allowsHitTesting(false)
 
-            Text(progress >= 1 ? "Done" : "Hold to dismiss")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.9))
-                .frame(maxWidth: .infinity, alignment: .center)
+            HStack(spacing: 8) {
+                Image(systemName: isHolding ? "checkmark.circle.fill" : "hand.tap.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.84))
+
+                Text(isHolding ? "Keep holding..." : "Press and hold to dismiss")
+                    .font(.system(size: 13.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.92))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
-        .frame(height: 40)
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    if pressStart == nil {
-                        pressStart = Date()
+        .frame(height: 44)
+        .contentShape(Capsule(style: .continuous))
+        .onLongPressGesture(
+            minimumDuration: holdDuration,
+            maximumDistance: 30,
+            pressing: { pressing in
+                if pressing {
+                    guard !isHolding else { return }
+                    isHolding = true
+                    progress = 0
+                    withAnimation(.linear(duration: holdDuration)) {
+                        progress = 1
+                    }
+                } else {
+                    isHolding = false
+                    withAnimation(.easeOut(duration: 0.18)) {
                         progress = 0
                     }
                 }
-                .onEnded { _ in
-                    resetHold()
-                }
+            },
+            perform: {
+                onDismiss()
+                isHolding = false
+                progress = 0
+            }
         )
-    }
-
-    private func resetHold() {
-        pressStart = nil
-        progress = 0
     }
 }
 
@@ -145,7 +216,7 @@ final class DrinkReminderWindowController: NSWindowController {
 
     init() {
         let panel = DrinkReminderPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 220),
+            contentRect: NSRect(x: 0, y: 0, width: 392, height: 188),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -175,7 +246,7 @@ final class DrinkReminderWindowController: NSWindowController {
 
         let targetScreen = screen ?? NSScreen.main ?? NSScreen.screens.first
         if let frame = targetScreen?.visibleFrame {
-            let size = NSSize(width: 360, height: 220)
+            let size = NSSize(width: 392, height: 188)
             let origin = NSPoint(
                 x: frame.midX - (size.width / 2),
                 y: frame.midY - (size.height / 2)
@@ -190,7 +261,12 @@ final class DrinkReminderWindowController: NSWindowController {
             self?.dismiss()
         }
 
-        panel.contentView = NSHostingView(rootView: rootView)
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        panel.contentView = hostingView
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
